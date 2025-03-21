@@ -1,3 +1,8 @@
+# PENTING !!!
+Jangan pernah langsung aplikasikan ini ke clinic tanpa melakukan analisa lebih lanjut
+APP ini hanya untuk tujuan pembelajaran alur dari sistem kerja clinic sederhana yang belum terconnect ke API dari kemenkes
+
+Feel free to clone dan pelajari, tapi jika di implementasikan dengan base file ini, jngan lupa credit github.com/leaksopan
 # Database SQL eClinic
 
 File-file SQL ini berisi struktur database untuk sistem eClinic. Database dirancang menggunakan MySQL/MariaDB dan menggunakan struktur modular untuk memudahkan pemahaman dan pengelolaan.
