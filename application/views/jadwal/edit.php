@@ -42,6 +42,34 @@
                                     </select>
                                 </div>
                                 
+                                <!-- Jadwal yang sudah ada dari dokter yang dipilih -->
+                                <div id="jadwal-dokter-container" class="d-none">
+                                    <div class="card border-left-info shadow mb-3">
+                                        <div class="card-header py-2 bg-light">
+                                            <h6 class="m-0 font-weight-bold text-info">Jadwal Praktek Dokter yang Dipilih</h6>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <table class="table table-sm table-striped mb-0">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th>Hari</th>
+                                                        <th>Jam</th>
+                                                        <th>Poliklinik</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="jadwal-dokter-list">
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">Pilih dokter terlebih dahulu</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="card-footer bg-light py-1">
+                                            <small class="text-muted font-italic">* Jadwal yang sedang diedit ditandai dengan warna berbeda</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="form-group">
                                     <label for="id_poli">Poliklinik <span class="text-danger">*</span></label>
                                     <select name="id_poli" id="id_poli" class="form-control select2" required>
@@ -96,8 +124,13 @@
                             </div>
                         </div>
                         
-                        <div class="alert alert-warning">
-                            <i class="fas fa-info-circle"></i> Pastikan jadwal yang diubah tidak bentrok dengan jadwal praktek dokter yang sudah ada.
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Informasi:
+                            <ul class="mb-0">
+                                <li>Dokter dapat memiliki lebih dari 1 jadwal praktek di hari yang sama dengan jam berbeda.</li>
+                                <li>Dokter dapat praktek di beberapa hari dengan jam yang sama atau berbeda.</li>
+                                <li>Sistem akan mendeteksi apakah jadwal yang ditambahkan tumpang tindih (overlap) dengan jadwal yang sudah ada.</li>
+                            </ul>
                         </div>
                         
                         <div class="form-group text-right">
@@ -141,6 +174,57 @@
                 $(this).val('<?= $jadwal->jam_mulai ?>');
             }
         });
+        
+        // ID jadwal yang sedang diedit
+        var currentJadwalId = <?= $jadwal->id_jadwal ?>;
+        
+        // Ambil jadwal dokter saat dokter dipilih
+        $('#id_dokter').on('change', function() {
+            var idDokter = $(this).val();
+            
+            if (idDokter) {
+                $.ajax({
+                    url: '<?= base_url('jadwal/get_jadwal_dokter') ?>',
+                    type: 'POST',
+                    data: {
+                        id_dokter: idDokter
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        var html = '';
+                        
+                        if (response.length > 0) {
+                            $.each(response, function(index, value) {
+                                // Tandai jadwal yang sedang diedit dengan warna berbeda
+                                var rowClass = (value.id_jadwal == currentJadwalId) ? 'table-warning' : '';
+                                
+                                html += '<tr class="' + rowClass + '">';
+                                html += '<td>' + value.hari + '</td>';
+                                html += '<td>' + value.jam_mulai + ' - ' + value.jam_selesai + '</td>';
+                                html += '<td>' + value.nama_poli + '</td>';
+                                html += '</tr>';
+                            });
+                            
+                            $('#jadwal-dokter-container').removeClass('d-none');
+                        } else {
+                            html = '<tr><td colspan="3" class="text-center">Dokter belum memiliki jadwal praktek</td></tr>';
+                            $('#jadwal-dokter-container').removeClass('d-none');
+                        }
+                        
+                        $('#jadwal-dokter-list').html(html);
+                    },
+                    error: function() {
+                        $('#jadwal-dokter-list').html('<tr><td colspan="3" class="text-center">Gagal mengambil jadwal</td></tr>');
+                        $('#jadwal-dokter-container').removeClass('d-none');
+                    }
+                });
+            } else {
+                $('#jadwal-dokter-container').addClass('d-none');
+            }
+        });
+        
+        // Jalankan secara otomatis saat halaman dimuat
+        $('#id_dokter').trigger('change');
     });
 </script>
 

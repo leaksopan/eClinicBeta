@@ -83,26 +83,13 @@ class Poliklinik_model extends CI_Model {
         $this->db->order_by('nama_poli', 'ASC');
         $query = $this->db->get($this->table);
         
-        $data = [];
-        
-        // Debug query and result
-        error_log('Poliklinik dropdown query: ' . $this->db->last_query());
-        error_log('Poliklinik dropdown result count: ' . $query->num_rows());
-        
-        foreach ($query->result() as $row) {
-            $data[$row->id_poli] = $row->nama_poli;
-            error_log('Poliklinik item: ' . $row->id_poli . ' - ' . $row->nama_poli);
-        }
-        
-        return $data;
+        return $query->result_array();
     }
     
     /**
      * Mendapatkan data poliklinik untuk dropdown
      */
     public function get_dropdown_poli() {
-        $data = $this->get_dropdown();
-        error_log('Poliklinik dropdown_poli count: ' . count($data));
-        return $data;
+        return $this->get_dropdown();
     }
 } 

@@ -281,4 +281,48 @@ class Jadwal_model extends CI_Model {
         
         return $this->db->get()->row();
     }
+    
+    /**
+     * Memeriksa apakah ada overlap waktu jadwal pada hari yang sama
+     * 
+     * @param int $id_dokter ID dokter
+     * @param string $hari Hari praktek
+     * @param string $jam_mulai Jam mulai
+     * @param string $jam_selesai Jam selesai
+     * @param int|null $current_id ID jadwal saat ini (untuk edit)
+     * @return bool TRUE jika ada overlap, FALSE jika tidak
+     */
+    public function check_time_overlap($id_dokter, $hari, $jam_mulai, $jam_selesai, $current_id = null) {
+        $this->db->from($this->table);
+        $this->db->where('id_dokter', $id_dokter);
+        $this->db->where('hari', $hari);
+        
+        // Cek overlap waktu:
+        // 1. Jika jadwal baru mulai di tengah-tengah jadwal yang sudah ada
+        // 2. Jika jadwal baru selesai di tengah-tengah jadwal yang sudah ada
+        // 3. Jika jadwal baru mencakup jadwal yang sudah ada
+        $this->db->group_start();
+            $this->db->group_start();
+                $this->db->where('jam_mulai <=', $jam_mulai);
+                $this->db->where('jam_selesai >', $jam_mulai);
+            $this->db->group_end();
+            
+            $this->db->or_group_start();
+                $this->db->where('jam_mulai <', $jam_selesai);
+                $this->db->where('jam_selesai >=', $jam_selesai);
+            $this->db->group_end();
+            
+            $this->db->or_group_start();
+                $this->db->where('jam_mulai >=', $jam_mulai);
+                $this->db->where('jam_selesai <=', $jam_selesai);
+            $this->db->group_end();
+        $this->db->group_end();
+        
+        // Exclude jadwal saat ini jika sedang edit
+        if ($current_id !== null) {
+            $this->db->where('id_jadwal !=', $current_id);
+        }
+        
+        return $this->db->count_all_results() > 0;
+    }
 } 

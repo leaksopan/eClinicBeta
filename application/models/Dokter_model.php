@@ -162,19 +162,14 @@ class Dokter_model extends CI_Model {
      * Mendapatkan data dokter untuk dropdown
      */
     public function get_dropdown_dokter() {
-        $this->db->select('dokter.id_dokter, pengguna.nama_lengkap');
+        $this->db->select('dokter.id_dokter, pengguna.nama_lengkap as nama_dokter, dokter.spesialis');
         $this->db->from($this->table);
         $this->db->join('pengguna', 'pengguna.id_pengguna = dokter.id_pengguna');
         $this->db->where('dokter.status_praktek', 'Aktif');
         $this->db->order_by('pengguna.nama_lengkap', 'ASC');
         $query = $this->db->get();
         
-        $data = [];
-        foreach ($query->result() as $row) {
-            $data[$row->id_dokter] = $row->nama_lengkap;
-        }
-        
-        return $data;
+        return $query->result_array();
     }
 
     /**
