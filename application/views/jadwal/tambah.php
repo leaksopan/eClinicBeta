@@ -36,6 +36,7 @@
                                 <select name="id_dokter" id="id_dokter" class="form-control select2" required>
                                     <option value="">- Pilih Dokter -</option>
                                     <?php foreach ($dokter as $row) : ?>
+                                        <!--jangan ganti ini kalau tidak sangat terpaksa, data jadwal tidak terlihat-->
                                         <option value="<?= $row['id_dokter'] ?>"><?= $row['nama_dokter'] ?> - <?= $row['spesialis'] ?></option>
                                     <?php endforeach; ?>
                                 </select>

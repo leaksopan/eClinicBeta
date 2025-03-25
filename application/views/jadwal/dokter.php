@@ -8,26 +8,16 @@
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-user-md mr-1"></i> Jadwal Praktek Dokter: <?= $dokter->nama_lengkap ?>
                     </h6>
-                    <div class="dropdown no-arrow">
-                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    <div class="d-flex">
+                        <a href="<?= base_url('dokter/lihat/' . $dokter->id_dokter) ?>" class="btn btn-sm btn-info mr-2">
+                            <i class="fas fa-eye"></i> Lihat Detail
                         </a>
-                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                            <div class="dropdown-header">Opsi Dokter:</div>
-                            <a class="dropdown-item" href="<?= base_url('dokter/lihat/' . $dokter->id_dokter) ?>">
-                                <i class="fas fa-eye fa-sm fa-fw mr-2 text-gray-400"></i>
-                                Lihat Detail Dokter
-                            </a>
-                            <a class="dropdown-item" href="<?= base_url('dokter/edit/' . $dokter->id_dokter) ?>">
-                                <i class="fas fa-edit fa-sm fa-fw mr-2 text-gray-400"></i>
-                                Edit Data Dokter
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="<?= base_url('jadwal') ?>">
-                                <i class="fas fa-calendar-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                Kembali ke Jadwal
-                            </a>
-                        </div>
+                        <a href="<?= base_url('dokter/edit/' . $dokter->id_dokter) ?>" class="btn btn-sm btn-warning mr-2">
+                            <i class="fas fa-edit"></i> Edit Dokter
+                        </a>
+                        <a href="<?= base_url('jadwal') ?>" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-calendar-alt"></i> Kembali
+                        </a>
                     </div>
                 </div>
                 <div class="card-body">
@@ -65,11 +55,11 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-md-4">No. SIP</div>
-                                        <div class="col-md-8">: <?= $dokter->no_sip ?></div>
+                                        <div class="col-md-8">: <?= isset($dokter->no_sip) ? $dokter->no_sip : $dokter->sip ?></div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-4">Telepon</div>
-                                        <div class="col-md-8">: <?= $dokter->telepon ?></div>
+                                        <div class="col-md-8">: <?= isset($dokter->telepon) ? $dokter->telepon : $dokter->no_telp ?></div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-4">Tarif Konsultasi</div>
@@ -96,7 +86,7 @@
                                 <div class="card-body">
                                     <h5 class="card-title">
                                         Jadwal Praktek
-                                        <a href="<?= base_url('jadwal/tambah') ?>" class="btn btn-sm btn-primary float-right">
+                                        <a href="<?= base_url('jadwal/tambah?id_dokter=' . $dokter->id_dokter) ?>" class="btn btn-sm btn-primary float-right">
                                             <i class="fas fa-plus"></i> Tambah Jadwal
                                         </a>
                                     </h5>
