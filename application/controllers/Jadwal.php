@@ -27,9 +27,41 @@ class Jadwal extends CI_Controller {
         $data['jadwal'] = $this->Jadwal_model->get_all_jadwal();
         $data['hari'] = $this->Jadwal_model->get_hari();
         
+        // Tampilan baru dengan jadwal yang dikelompokkan per dokter
+        $data['grouped_jadwal'] = $this->_get_grouped_jadwal($data['jadwal']);
+        
         $this->load->view('templates/header', $data);
         $this->load->view('jadwal/index', $data);
         $this->load->view('templates/footer');
+    }
+
+    /**
+     * Mengelompokkan jadwal berdasarkan dokter
+     * 
+     * @param array $jadwal_list Daftar jadwal
+     * @return array Jadwal yang dikelompokkan per dokter
+     */
+    private function _get_grouped_jadwal($jadwal_list) {
+        $grouped = [];
+        
+        foreach ($jadwal_list as $jadwal) {
+            $id_dokter = $jadwal->id_dokter;
+            
+            if (!isset($grouped[$id_dokter])) {
+                $grouped[$id_dokter] = [
+                    'dokter' => [
+                        'id_dokter' => $jadwal->id_dokter,
+                        'nama_dokter' => $jadwal->nama_dokter,
+                        'spesialis' => $jadwal->spesialis
+                    ],
+                    'jadwal' => []
+                ];
+            }
+            
+            $grouped[$id_dokter]['jadwal'][] = $jadwal;
+        }
+        
+        return $grouped;
     }
 
     public function tambah() {
@@ -38,12 +70,22 @@ class Jadwal extends CI_Controller {
         $data['poli'] = $this->Poliklinik_model->get_dropdown_poli();
         $data['hari'] = $this->Jadwal_model->get_hari();
         
-        // Jadwal dokter yang dipilih
-        $id_dokter = $this->input->post('id_dokter');
+        // Cek apakah ada id_dokter dari URL (untuk pre-select dokter)
+        $id_dokter = $this->input->get('id_dokter');
+        if (!$id_dokter) {
+            $id_dokter = $this->input->post('id_dokter');
+        }
+        
+        $data['selected_dokter'] = $id_dokter;
         $data['jadwal_dokter'] = [];
         
         if ($id_dokter) {
             $data['jadwal_dokter'] = $this->Jadwal_model->get_jadwal_by_dokter($id_dokter);
+            // Jika dokter ditemukan, dapatkan informasi tambahan 
+            $dokter_info = $this->Dokter_model->get_dokter_by_id($id_dokter);
+            if ($dokter_info) {
+                $data['dokter_info'] = $dokter_info;
+            }
         }
         
         $this->form_validation->set_rules('id_dokter', 'Dokter', 'required');
@@ -66,7 +108,7 @@ class Jadwal extends CI_Controller {
                 'jam_selesai' => $this->input->post('jam_selesai'),
                 'kuota_pasien' => $this->input->post('kuota_pasien'),
                 'keterangan' => $this->input->post('keterangan'),
-                'status' => $this->input->post('status')
+                'status' => $this->input->post('status') ? $this->input->post('status') : 'aktif'
             ];
             
             // Periksa apakah jadwal bentrok dengan jadwal yang sudah ada
@@ -79,7 +121,7 @@ class Jadwal extends CI_Controller {
             
             if ($is_conflict) {
                 $this->session->set_flashdata('error', 'Jadwal bentrok dengan jadwal dokter yang sudah ada.');
-                redirect('jadwal/tambah');
+                redirect('jadwal/tambah?id_dokter=' . $jadwal_data['id_dokter']);
             } else {
                 $this->Jadwal_model->save_jadwal($jadwal_data);
                 $this->session->set_flashdata('success', 'Jadwal praktek dokter berhasil ditambahkan.');
