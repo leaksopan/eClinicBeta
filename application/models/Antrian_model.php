@@ -26,8 +26,9 @@ class Antrian_model extends CI_Model {
         $this->db->join('pengguna', 'pengguna.id_pengguna = dokter.id_pengguna', 'left');
         
         // Filter berdasarkan tanggal
-        if (!empty($filter['tanggal'])) {
-            $this->db->where('antrian.tanggal', $filter['tanggal']);
+        if (!empty($filter['tanggal_awal']) && !empty($filter['tanggal_akhir'])) {
+            $this->db->where('antrian.tanggal >=', $filter['tanggal_awal']);
+            $this->db->where('antrian.tanggal <=', $filter['tanggal_akhir']);
         } else {
             // Default tampilkan antrian hari ini
             $this->db->where('antrian.tanggal', date('Y-m-d'));
@@ -248,26 +249,56 @@ class Antrian_model extends CI_Model {
     /**
      * Generate nomor antrian baru
      * 
-     * @param string $tanggal Tanggal antrian (format Y-m-d)
+     * @param string $tanggal Tanggal antrian
      * @param int $id_poliklinik ID poliklinik
-     * @return int
+     * @return string Nomor antrian dengan format KODE_POLI-XXX
      */
     private function generate_no_antrian($tanggal, $id_poliklinik) {
-        // Cari nomor antrian terakhir pada tanggal dan poliklinik tersebut
-        $this->db->select_max('no_antrian');
+        // Dapatkan kode poli
+        $this->db->select('kode_poli');
+        $this->db->from('poliklinik');
+        $this->db->where('id_poli', $id_poliklinik);
+        $poli = $this->db->get()->row();
+        
+        if (!$poli) {
+            return '000'; // Return default jika poli tidak ditemukan
+        }
+        
+        $kode_poli = $poli->kode_poli;
+        
+        // Cari nomor terakhir untuk poli dan tanggal tersebut
+        $this->db->select('no_antrian');
         $this->db->from('antrian');
         $this->db->where('tanggal', $tanggal);
         $this->db->where('id_poliklinik', $id_poliklinik);
+        $this->db->where('status !=', 'batal');
+        $this->db->order_by('id_antrian', 'DESC');
+        $this->db->limit(1);
         
-        $query = $this->db->get();
-        $row = $query->row();
+        $last = $this->db->get()->row();
         
-        if ($row && $row->no_antrian) {
-            // Jika sudah ada nomor sebelumnya, tambahkan 1
-            return $row->no_antrian + 1;
+        if ($last) {
+            // Jika ada antrian sebelumnya, ambil nomor dan increment
+            $parts = explode('-', $last->no_antrian);
+            $last_number = isset($parts[1]) ? intval($parts[1]) : 0;
+            $next_number = $last_number + 1;
         } else {
-            // Jika belum ada, mulai dari 1
-            return 1;
+            // Jika belum ada antrian, mulai dari 1
+            $next_number = 1;
         }
+        
+        // Format nomor dengan leading zeros (3 digit)
+        return $kode_poli . '-' . sprintf('%03d', $next_number);
+    }
+    
+    /**
+     * Menghapus data antrian
+     * 
+     * @param int $id_antrian ID antrian
+     * @return bool
+     */
+    public function delete_antrian($id_antrian) {
+        $this->db->where('id_antrian', $id_antrian);
+        return $this->db->delete('antrian');
     }
 } 

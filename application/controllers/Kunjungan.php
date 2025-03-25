@@ -91,18 +91,20 @@ class Kunjungan extends CI_Controller {
         
         // Filter data
         $filter = [];
-        if ($this->input->get('tanggal')) {
-            $filter['tanggal'] = $this->input->get('tanggal');
+        if ($this->input->get('tanggal_awal')) {
+            $filter['tanggal_awal'] = $this->input->get('tanggal_awal');
         } else {
-            $filter['tanggal'] = date('Y-m-d');
+            $filter['tanggal_awal'] = date('Y-m-d');
+        }
+        
+        if ($this->input->get('tanggal_akhir')) {
+            $filter['tanggal_akhir'] = $this->input->get('tanggal_akhir');
+        } else {
+            $filter['tanggal_akhir'] = date('Y-m-d');
         }
         
         if ($this->input->get('id_poliklinik')) {
             $filter['id_poliklinik'] = $this->input->get('id_poliklinik');
-        }
-        
-        if ($this->input->get('status')) {
-            $filter['status'] = $this->input->get('status');
         }
         
         // Ambil data antrian
@@ -522,5 +524,35 @@ class Kunjungan extends CI_Controller {
             'nomor_antrian' => $nomor_antrian,
             'urutan' => $urutan
         ]);
+    }
+    
+    /**
+     * Method untuk menghapus antrian yang sudah dibatalkan
+     * 
+     * @param int $id_antrian ID antrian
+     */
+    public function hapus_antrian($id_antrian) {
+        $antrian = $this->Antrian_model->get_antrian_by_id($id_antrian);
+        
+        if (!$antrian) {
+            $this->session->set_flashdata('error', 'Antrian tidak ditemukan.');
+            redirect('kunjungan/antrian');
+        }
+
+        // Hanya antrian yang sudah dibatalkan yang bisa dihapus
+        if ($antrian->status !== 'batal') {
+            $this->session->set_flashdata('error', 'Hanya antrian yang sudah dibatalkan yang dapat dihapus.');
+            redirect('kunjungan/antrian');
+        }
+        
+        $result = $this->Antrian_model->delete_antrian($id_antrian);
+        
+        if ($result) {
+            $this->session->set_flashdata('success', 'Antrian berhasil dihapus.');
+        } else {
+            $this->session->set_flashdata('error', 'Gagal menghapus antrian.');
+        }
+        
+        redirect('kunjungan/antrian');
     }
 } 
