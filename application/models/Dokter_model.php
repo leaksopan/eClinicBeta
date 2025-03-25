@@ -176,4 +176,20 @@ class Dokter_model extends CI_Model {
         
         return $data;
     }
+
+    /**
+     * Mendapatkan dokter berdasarkan ID poliklinik
+     * 
+     * @param int $id_poliklinik ID poliklinik
+     * @return array
+     */
+    public function get_dokter_by_poliklinik($id_poliklinik) {
+        $this->db->select('DISTINCT(dokter.id_dokter), pengguna.nama_lengkap, dokter.spesialis, dokter.gelar_depan, dokter.gelar_belakang');
+        $this->db->from($this->table);
+        $this->db->join('pengguna', 'pengguna.id_pengguna = dokter.id_pengguna');
+        $this->db->join('jadwal_dokter', 'jadwal_dokter.id_dokter = dokter.id_dokter');
+        $this->db->where('jadwal_dokter.id_poli', $id_poliklinik);
+        $this->db->where('dokter.status_praktek', 'aktif');
+        return $this->db->get()->result();
+    }
 } 

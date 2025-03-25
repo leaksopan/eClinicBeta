@@ -314,4 +314,60 @@ class Dokter extends CI_Controller {
         
         redirect('jadwal');
     }
+    
+    /**
+     * Mendapatkan dokter berdasarkan poliklinik untuk AJAX
+     */
+    public function get_dokter_by_poli() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        
+        $id_poliklinik = $this->input->post('id_poliklinik');
+        $tanggal = $this->input->post('tanggal');
+        
+        // Jika kosong, kembalikan array kosong
+        if (empty($id_poliklinik)) {
+            echo json_encode([]);
+            return;
+        }
+        
+        // Ambil semua dokter yang terdaftar di poliklinik ini
+        $this->load->model('Jadwal_model');
+        
+        // Menggunakan Dokter_model daripada langsung query
+        $dokter_list = $this->Dokter_model->get_dokter_by_poliklinik($id_poliklinik);
+        
+        $formatted_dokter = [];
+        
+        foreach ($dokter_list as $dokter) {
+            // Cek jadwal dokter di tanggal yang dipilih
+            $hari = date('w', strtotime($tanggal));
+            $hari_text = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][$hari];
+            
+            $jadwal = $this->Jadwal_model->get_jadwal_by_dokter_hari($dokter->id_dokter, $hari);
+            
+            $jadwal_text = "";
+            if ($jadwal) {
+                $jadwal_text = " (" . $hari_text . ": " . date('H:i', strtotime($jadwal->jam_mulai)) . 
+                               " - " . date('H:i', strtotime($jadwal->jam_selesai)) . ")";
+            } else {
+                $jadwal_text = " (Tidak ada jadwal hari " . $hari_text . ")";
+            }
+            
+            $gelar_depan = !empty($dokter->gelar_depan) ? $dokter->gelar_depan . ' ' : '';
+            $gelar_belakang = !empty($dokter->gelar_belakang) ? ', ' . $dokter->gelar_belakang : '';
+            $nama_lengkap = $gelar_depan . $dokter->nama_lengkap . $gelar_belakang;
+            
+            $formatted_dokter[] = [
+                'id_dokter' => $dokter->id_dokter,
+                'nama' => $nama_lengkap . $jadwal_text,
+                'spesialis' => $dokter->spesialis,
+                'has_jadwal' => $jadwal ? true : false
+            ];
+        }
+        
+        echo json_encode($formatted_dokter);
+    }
 } 

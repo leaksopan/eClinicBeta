@@ -1,0 +1,11 @@
+<svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text { font: bold 24px sans-serif; fill: #3c8dbc; }
+    .clinic { fill: #1f2d3d; }
+    .icon { fill: #3c8dbc; }
+  </style>
+  <rect x="25" y="40" width="100" height="70" rx="10" ry="10" fill="#f8f9fa" stroke="#3c8dbc" stroke-width="3"/>
+  <path class="icon" d="M75 55 v15 h15 v10 h-15 v15 h-10 v-15 h-15 v-10 h15 v-15 z"/>
+  <text x="75" y="110" text-anchor="middle" class="text">eClinic</text>
+  <text x="75" y="130" text-anchor="middle" class="clinic" font-size="14">Management System</text>
+</svg> 

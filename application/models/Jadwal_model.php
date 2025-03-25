@@ -260,4 +260,25 @@ class Jadwal_model extends CI_Model {
         $this->db->where('status', 'aktif');
         return $this->db->count_all_results($this->table);
     }
+    
+    /**
+     * Mendapatkan jadwal dokter berdasarkan ID dokter dan hari
+     * 
+     * @param int $id_dokter ID dokter
+     * @param int $hari Hari dalam bentuk angka (0: Minggu, 1: Senin, dst)
+     * @return object
+     */
+    public function get_jadwal_by_dokter_hari($id_dokter, $hari) {
+        $days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $hari_text = $days[$hari];
+        
+        $this->db->select('jadwal_dokter.*, poliklinik.nama_poli');
+        $this->db->from($this->table);
+        $this->db->join('poliklinik', 'poliklinik.id_poli = jadwal_dokter.id_poli');
+        $this->db->where('jadwal_dokter.id_dokter', $id_dokter);
+        $this->db->where('jadwal_dokter.hari', $hari_text);
+        $this->db->where('jadwal_dokter.status', 'aktif');
+        
+        return $this->db->get()->row();
+    }
 } 

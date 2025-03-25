@@ -1,0 +1,10 @@
+/*!
+ * Font Awesome Free 5.15.3 by @fontawesome - https://fontawesome.com
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
+ */
+.fa,.fas,.far,.fal,.fad,.fab{-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:inline-block;font-style:normal;font-variant:normal;text-rendering:auto;line-height:1;font-family:Arial, sans-serif;font-weight:900;}
+.fa-user:before{content:"👤";}
+.fa-lock:before{content:"🔒";}
+.fa-envelope:before{content:"✉";}
+.fa-info-circle:before{content:"ℹ";}
+.fa-arrow-left:before{content:"←";} 

@@ -39,6 +39,21 @@ CREATE TABLE `rekam_medis` (
   CONSTRAINT `rekam_medis_ibfk_3` FOREIGN KEY (`id_pasien`) REFERENCES `pasien` (`id_pasien`),
   CONSTRAINT `rekam_medis_ibfk_4` FOREIGN KEY (`id_dokter`) REFERENCES `dokter` (`id_dokter`),
   CONSTRAINT `rekam_medis_ibfk_5` FOREIGN KEY (`id_petugas`) REFERENCES `pengguna` (`id_pengguna`)
+
+  -- Pastikan field ini ada di tabel rekam_medis
+ALTER TABLE `rekam_medis` 
+
+ADD COLUMN `diagnosis` text DEFAULT NULL,
+ADD COLUMN `tindakan` text DEFAULT NULL,
+ADD COLUMN `keterangan` text DEFAULT NULL,
+ADD COLUMN `is_rujukan` tinyint(1) DEFAULT 0,
+ADD COLUMN `rujuk_ke` varchar(100) DEFAULT NULL,
+ADD COLUMN `catatan_rujukan` text DEFAULT NULL;
+
+ALTER TABLE `rekam_medis` 
+ADD COLUMN `id_kunjungan` int(11) DEFAULT NULL AFTER `id_pasien`,
+ADD KEY `id_kunjungan` (`id_kunjungan`),
+ADD CONSTRAINT `rekam_medis_ibfk_6` FOREIGN KEY (`id_kunjungan`) REFERENCES `kunjungan` (`id_kunjungan`) ON DELETE SET NULL;
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Tabel ICD (International Classification of Diseases)

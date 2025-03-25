@@ -143,7 +143,7 @@
                                         <div class="card-body text-center">
                                             <i class="fas fa-clipboard-list fa-3x mb-3 text-info"></i>
                                             <h5>Pendaftaran</h5>
-                                            <a href="<?= base_url('kunjungan/tambah') ?>" class="btn btn-info btn-sm mt-2">Akses</a>
+                                            <a href="<?= base_url('kunjungan/tambah_antrian') ?>" class="btn btn-info btn-sm mt-2">Akses</a>
                                         </div>
                                     </div>
                                 </div>

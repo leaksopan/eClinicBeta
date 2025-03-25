@@ -62,6 +62,17 @@ class Pengguna_model extends CI_Model {
     }
     
     /**
+     * Mendapatkan data pengguna berdasarkan email
+     */
+    public function get_pengguna_by_email($email) {
+        $this->db->select('pengguna.*, role.nama_role');
+        $this->db->from($this->table);
+        $this->db->join('role', 'role.id_role = pengguna.id_role', 'left');
+        $this->db->where('pengguna.email', $email);
+        return $this->db->get()->row();
+    }
+    
+    /**
      * Menyimpan data pengguna baru
      */
     public function save_pengguna($data) {
@@ -134,5 +145,61 @@ class Pengguna_model extends CI_Model {
         }
         
         return null;
+    }
+    
+    /**
+     * Update waktu terakhir login
+     */
+    public function update_last_login($id_pengguna) {
+        $this->db->where('id_pengguna', $id_pengguna);
+        return $this->db->update($this->table, ['terakhir_login' => date('Y-m-d H:i:s')]);
+    }
+    
+    /**
+     * Simpan token reset password
+     */
+    public function save_reset_token($id_pengguna, $token, $expired_at) {
+        // Jika perlu, buat tabel reset_password terlebih dahulu
+        $this->db->query("CREATE TABLE IF NOT EXISTS reset_password (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            id_pengguna INT(11) NOT NULL,
+            token VARCHAR(100) NOT NULL,
+            expired_at DATETIME NOT NULL,
+            used TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY (id_pengguna),
+            CONSTRAINT `reset_password_ibfk_1` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        
+        // Hapus token lama jika ada
+        $this->db->where('id_pengguna', $id_pengguna);
+        $this->db->delete('reset_password');
+        
+        // Simpan token baru
+        $data = [
+            'id_pengguna' => $id_pengguna,
+            'token' => $token,
+            'expired_at' => $expired_at
+        ];
+        
+        $this->db->insert('reset_password', $data);
+        return $this->db->affected_rows() > 0;
+    }
+    
+    /**
+     * Log aktivitas pengguna
+     */
+    public function log_aktivitas($id_pengguna, $aktivitas, $keterangan = '') {
+        $data = [
+            'id_pengguna' => $id_pengguna,
+            'aktivitas' => $aktivitas,
+            'keterangan' => $keterangan,
+            'ip_address' => $this->input->ip_address(),
+            'user_agent' => $this->input->user_agent()
+        ];
+        
+        $this->db->insert('log_aktivitas', $data);
+        return $this->db->affected_rows() > 0;
     }
 } 
