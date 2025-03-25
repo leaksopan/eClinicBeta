@@ -124,6 +124,17 @@
             box-shadow: 0 0.5rem 1.5rem 0 rgba(58, 59, 69, 0.25);
         }
     </style>
+    
+    <!-- Script untuk menangani #logout di URL -->
+    <script>
+        $(document).ready(function() {
+            // Cek apakah URL mengandung #logout
+            if (window.location.hash === '#logout') {
+                // Redirect ke auth/logout
+                window.location.href = '<?= base_url('auth/logout') ?>';
+            }
+        });
+    </script>
 </head>
 <body>
     <!-- Navbar -->
@@ -139,13 +150,13 @@
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown">
-                            <i class="fas fa-user-circle"></i> Admin
+                            <i class="fas fa-user-circle"></i> <?= $this->session->userdata('nama_lengkap') ?? 'Admin' ?>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item" href="#"><i class="fas fa-user-cog"></i> Profil</a>
                             <a class="dropdown-item" href="<?= base_url('pengguna') ?>"><i class="fas fa-users"></i> Kelola Pengguna</a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                            <a class="dropdown-item" href="<?= base_url('auth/logout') ?>"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         </div>
                     </li>
                 </ul>
