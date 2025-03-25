@@ -253,20 +253,46 @@ class Kunjungan_model extends CI_Model {
      * @return array
      */
     public function get_riwayat_kunjungan_pasien($id_pasien, $limit = NULL) {
-        $this->db->select('kunjungan.*, pengguna.nama_lengkap as nama_dokter, poliklinik.nama_poli');
+        $this->db->select('
+            kunjungan.*,
+            pasien.nama_lengkap as nama_pasien, 
+            pasien.no_rm,
+            pengguna.nama_lengkap as nama_dokter,
+            poliklinik.nama_poli
+        ');
         $this->db->from('kunjungan');
+        $this->db->join('pasien', 'pasien.id_pasien = kunjungan.id_pasien', 'left');
         $this->db->join('dokter', 'dokter.id_dokter = kunjungan.id_dokter', 'left');
         $this->db->join('pengguna', 'pengguna.id_pengguna = dokter.id_pengguna', 'left');
-        $this->db->join('poliklinik', 'poliklinik.id_poliklinik = kunjungan.id_poliklinik', 'left');
+        $this->db->join('poliklinik', 'poliklinik.id_poli = kunjungan.id_poliklinik', 'left');
+        
         $this->db->where('kunjungan.id_pasien', $id_pasien);
         $this->db->order_by('kunjungan.tanggal', 'DESC');
         $this->db->order_by('kunjungan.created_at', 'DESC');
         
-        if ($limit) {
+        if ($limit !== NULL) {
             $this->db->limit($limit);
         }
         
         $query = $this->db->get();
         return $query->result();
+    }
+    
+    /**
+     * Mendapatkan data kunjungan terakhir pasien berdasarkan ID pasien
+     * 
+     * @param int $id_pasien ID pasien
+     * @return object|null
+     */
+    public function get_last_visit_by_pasien($id_pasien) {
+        $this->db->select('kunjungan.*');
+        $this->db->from('kunjungan');
+        $this->db->where('id_pasien', $id_pasien);
+        $this->db->order_by('tanggal', 'DESC');
+        $this->db->order_by('created_at', 'DESC');
+        $this->db->limit(1);
+        
+        $query = $this->db->get();
+        return $query->row();
     }
 } 

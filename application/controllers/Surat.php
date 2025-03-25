@@ -1,6 +1,17 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * Controller untuk mengelola surat-surat klinik
+ * 
+ * @property CI_DB_query_builder $db Database
+ * @property CI_Input $input Input
+ * @property CI_Form_validation $form_validation Form validation
+ * @property CI_Session $session Session
+ * @property Surat_model $Surat_model Model Surat
+ * @property Template_surat_model $template_surat Model Template Surat
+ * @property CI_Pdf $pdf Library PDF
+ */
 class Surat extends CI_Controller {
     
     public function __construct() {

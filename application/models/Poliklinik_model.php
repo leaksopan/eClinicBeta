@@ -32,9 +32,14 @@ class Poliklinik_model extends CI_Model {
     
     /**
      * Mendapatkan data poliklinik berdasarkan ID
+     * 
+     * @param int $id_poli ID poliklinik
+     * @return object
      */
     public function get_poli_by_id($id_poli) {
-        return $this->db->get_where($this->table, ['id_poli' => $id_poli])->row();
+        $this->db->where('id_poli', $id_poli);
+        $query = $this->db->get('poliklinik');
+        return $query->row();
     }
     
     /**

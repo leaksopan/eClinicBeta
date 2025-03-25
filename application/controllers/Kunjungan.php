@@ -3,6 +3,18 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Controller untuk mengelola kunjungan pasien
+ * 
+ * @property CI_DB_query_builder $db Database
+ * @property CI_Input $input Input
+ * @property CI_Form_validation $form_validation Form validation
+ * @property CI_Session $session Session
+ * @property Kunjungan_model $Kunjungan_model Model Kunjungan
+ * @property Antrian_model $Antrian_model Model Antrian
+ * @property Pasien_model $Pasien_model Model Pasien
+ * @property Dokter_model $Dokter_model Model Dokter
+ * @property Poliklinik_model $Poliklinik_model Model Poliklinik
+ * @property Rekam_medis_model $Rekam_medis_model Model Rekam Medis
+ * @property Tindakan_model $Tindakan_model Model Tindakan
  */
 class Kunjungan extends CI_Controller {
     
@@ -468,5 +480,47 @@ class Kunjungan extends CI_Controller {
         
         // Load view cetak
         $this->load->view('kunjungan/cetak_antrian', $data);
+    }
+    
+    /**
+     * Mendapatkan estimasi nomor antrian berdasarkan poliklinik, dokter, dan tanggal
+     * Method ini dipanggil via AJAX dari form tambah antrian
+     */
+    public function get_estimasi_nomor_antrian() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        
+        // Debug input
+        header('Content-Type: application/json');
+        
+        $id_poli = $this->input->post('id_poli');
+        $id_dokter = $this->input->post('id_dokter');
+        $tanggal = $this->input->post('tanggal');
+        
+        // Hitung jumlah antrian yang sudah ada untuk kombinasi ini
+        $this->db->where('id_poliklinik', $id_poli);
+        $this->db->where('id_dokter', $id_dokter);
+        $this->db->where('tanggal', $tanggal);
+        $query = $this->db->get('antrian');
+        $count = $query->num_rows();
+        
+        // Urutan berikutnya
+        $urutan = $count + 1;
+        
+        // Format nomor antrian yang sederhana
+        $this->load->model('Poliklinik_model');
+        $poliklinik = $this->Poliklinik_model->get_poli_by_id($id_poli);
+        $kode_poli = $poliklinik ? $poliklinik->kode_poli : 'POL';
+        
+        // Format nomor antrian yang simple
+        $nomor_antrian = $kode_poli . '-' . sprintf('%03d', $urutan);
+        
+        echo json_encode([
+            'success' => true,
+            'nomor_antrian' => $nomor_antrian,
+            'urutan' => $urutan
+        ]);
     }
 } 

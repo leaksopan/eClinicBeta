@@ -58,6 +58,38 @@ class Pasien_model extends CI_Model {
     }
     
     /**
+     * Mencari data pasien dengan pagination
+     */
+    public function search_pasien_paginated($keyword, $limit = NULL, $offset = NULL) {
+        $this->db->like('nama_lengkap', $keyword);
+        $this->db->or_like('no_rm', $keyword);
+        $this->db->or_like('no_identitas', $keyword);
+        $this->db->or_like('alamat', $keyword);
+        $this->db->or_like('no_telp', $keyword);
+        
+        $this->db->order_by('nama_lengkap', 'ASC');
+        
+        if ($limit !== NULL) {
+            return $this->db->get($this->table, $limit, $offset)->result();
+        }
+        
+        return $this->db->get($this->table)->result();
+    }
+    
+    /**
+     * Menghitung jumlah hasil pencarian
+     */
+    public function count_search_results($keyword) {
+        $this->db->like('nama_lengkap', $keyword);
+        $this->db->or_like('no_rm', $keyword);
+        $this->db->or_like('no_identitas', $keyword);
+        $this->db->or_like('alamat', $keyword);
+        $this->db->or_like('no_telp', $keyword);
+        
+        return $this->db->count_all_results($this->table);
+    }
+    
+    /**
      * Menyimpan data pasien baru
      */
     public function save_pasien($data) {

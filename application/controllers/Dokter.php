@@ -12,11 +12,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  */
 
 /**
+ * @property CI_DB_query_builder $db
  * @property Dokter_model $Dokter_model
  * @property Jadwal_model $Jadwal_model
  * @property CI_Form_validation $form_validation
  * @property CI_Input $input
  * @property CI_Session $session
+ * @property Poliklinik_model $Poliklinik_model
  */
 class Dokter extends CI_Controller {
     
@@ -348,26 +350,223 @@ class Dokter extends CI_Controller {
             
             $jadwal = $this->Jadwal_model->get_jadwal_by_dokter_hari($dokter->id_dokter, $hari);
             
-            $jadwal_text = "";
-            if ($jadwal) {
-                $jadwal_text = " (" . $hari_text . ": " . date('H:i', strtotime($jadwal->jam_mulai)) . 
-                               " - " . date('H:i', strtotime($jadwal->jam_selesai)) . ")";
-            } else {
-                $jadwal_text = " (Tidak ada jadwal hari " . $hari_text . ")";
-            }
-            
             $gelar_depan = !empty($dokter->gelar_depan) ? $dokter->gelar_depan . ' ' : '';
             $gelar_belakang = !empty($dokter->gelar_belakang) ? ', ' . $dokter->gelar_belakang : '';
             $nama_lengkap = $gelar_depan . $dokter->nama_lengkap . $gelar_belakang;
             
             $formatted_dokter[] = [
                 'id_dokter' => $dokter->id_dokter,
-                'nama' => $nama_lengkap . $jadwal_text,
+                'nama' => $nama_lengkap,
                 'spesialis' => $dokter->spesialis,
                 'has_jadwal' => $jadwal ? true : false
             ];
         }
         
         echo json_encode($formatted_dokter);
+    }
+    
+    /**
+     * API: Mendapatkan semua data dokter dalam format JSON
+     */
+    public function get_all_dokter_json() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+            return;
+        }
+        
+        // Ambil semua data dokter aktif
+        $doctors = $this->Dokter_model->get_all_dokter_simple();
+        
+        // Format output JSON
+        $result = [];
+        foreach ($doctors as $doctor) {
+            $result[] = [
+                'id_dokter' => $doctor->id_dokter,
+                'nama' => $doctor->nama_lengkap,
+                'spesialis' => $doctor->spesialis
+            ];
+        }
+        
+        echo json_encode($result);
+    }
+    
+    /**
+     * API: Mendapatkan jadwal mingguan dokter
+     */
+    public function get_weekly_schedule() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+            return;
+        }
+        
+        // Ambil tanggal awal dan akhir dari request
+        $start_date = $this->input->post('start_date');
+        $end_date = $this->input->post('end_date');
+        
+        if (empty($start_date) || empty($end_date)) {
+            echo json_encode([]);
+            return;
+        }
+        
+        // Load model yang diperlukan
+        $this->load->model('Jadwal_model');
+        $this->load->model('Poliklinik_model');
+        
+        // Konversi tanggal ke objek DateTime
+        $start = new DateTime($start_date);
+        $end = new DateTime($end_date);
+        
+        // Mapping antara nama hari dalam Bahasa Indonesia dan nomor hari (1-7, 1=Senin)
+        $dayMapping = [
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu',
+            7 => 'Minggu'
+        ];
+        
+        // Inisialisasi array untuk menyimpan jadwal mingguan
+        $weeklySchedule = [];
+        
+        // Ambil semua data dokter aktif
+        $doctors = $this->Dokter_model->get_all_dokter();
+        
+        // Loop untuk setiap dokter
+        foreach ($doctors as $doctor) {
+            // Ambil jadwal dokter
+            $schedules = $this->Jadwal_model->get_jadwal_by_dokter($doctor->id_dokter);
+            
+            // Jika dokter tidak memiliki jadwal, lewati
+            if (empty($schedules)) {
+                continue;
+            }
+            
+            // Loop untuk setiap hari dalam rentang tanggal
+            $currentDate = clone $start;
+            while ($currentDate <= $end) {
+                // Dapatkan nama hari dalam bahasa Indonesia
+                $dayOfWeek = (int)$currentDate->format('N'); // 1 (Senin) hingga 7 (Minggu)
+                $dayName = $dayMapping[$dayOfWeek];
+                
+                // Cari jadwal untuk hari ini
+                foreach ($schedules as $schedule) {
+                    if ($schedule->hari == $dayName) {
+                        // Dapatkan informasi poliklinik
+                        $poliklinik = $this->Poliklinik_model->get_poli_by_id($schedule->id_poli);
+                        
+                        // Format jadwal untuk output JSON
+                        $scheduleData = [
+                            'id_jadwal' => $schedule->id_jadwal,
+                            'id_dokter' => $doctor->id_dokter,
+                            'nama_dokter' => $doctor->nama_lengkap,
+                            'id_poliklinik' => $schedule->id_poli,
+                            'nama_poliklinik' => $poliklinik->nama_poli,
+                            'jam_mulai' => $schedule->jam_mulai,
+                            'jam_selesai' => $schedule->jam_selesai,
+                            'tanggal' => $currentDate->format('Y-m-d'),
+                            'hari' => $dayName,
+                            'section' => $schedule->keterangan ?? 'Umum',
+                            'status' => $this->check_jadwal_status($schedule->id_jadwal, $currentDate->format('Y-m-d'))
+                        ];
+                        
+                        $weeklySchedule[] = $scheduleData;
+                    }
+                }
+                
+                // Pindah ke hari berikutnya
+                $currentDate->modify('+1 day');
+            }
+        }
+        
+        echo json_encode($weeklySchedule);
+    }
+    
+    /**
+     * Mengecek status jadwal (tersedia, penuh, cuti)
+     * 
+     * @param int $id_jadwal ID jadwal
+     * @param string $tanggal Tanggal dalam format Y-m-d
+     * @return string Status jadwal ('tersedia', 'penuh', 'cuti')
+     */
+    private function check_jadwal_status($id_jadwal, $tanggal) {
+        // Di sini Anda bisa menambahkan logika untuk memeriksa status jadwal
+        // Misalnya, cek apakah dokter cuti, atau apakah kuota sudah penuh
+        
+        // Sementara kita return 'tersedia' untuk semua jadwal
+        return 'tersedia';
+        
+        // Contoh logika yang bisa diimplementasikan:
+        /*
+        // Cek apakah dokter cuti
+        $is_cuti = $this->Dokter_model->is_dokter_cuti($id_dokter, $tanggal);
+        if ($is_cuti) {
+            return 'cuti';
+        }
+        
+        // Cek jumlah pasien terdaftar vs kuota
+        $jadwal = $this->Jadwal_model->get_jadwal_by_id($id_jadwal);
+        $jumlah_pasien = $this->Kunjungan_model->count_pasien_by_jadwal($id_jadwal, $tanggal);
+        
+        if ($jumlah_pasien >= $jadwal->kuota_pasien) {
+            return 'penuh';
+        }
+        
+        return 'tersedia';
+        */
+    }
+    
+    /**
+     * Mendapatkan jadwal dokter tertentu
+     */
+    public function get_jadwal_dokter() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        
+        $id_dokter = $this->input->post('id_dokter');
+        $id_poliklinik = $this->input->post('id_poliklinik');
+        $tanggal = $this->input->post('tanggal');
+        
+        if (empty($id_dokter) || empty($tanggal)) {
+            echo json_encode([]);
+            return;
+        }
+        
+        // Ambil hari dari tanggal
+        $hari_index = date('w', strtotime($tanggal));
+        $hari = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][$hari_index];
+        
+        // Query untuk mendapatkan jadwal dokter pada hari tersebut
+        $this->db->select('jadwal_dokter.*');
+        $this->db->from('jadwal_dokter');
+        $this->db->where('id_dokter', $id_dokter);
+        $this->db->where('hari', $hari);
+        $this->db->where('status', 'aktif');
+        
+        if (!empty($id_poliklinik)) {
+            $this->db->where('id_poli', $id_poliklinik);
+        }
+        
+        $this->db->order_by('jam_mulai', 'ASC');
+        $jadwal = $this->db->get()->result();
+        
+        $formatted_jadwal = [];
+        
+        foreach ($jadwal as $j) {
+            $formatted_jadwal[] = [
+                'id_jadwal' => $j->id_jadwal,
+                'jam_mulai' => date('H:i', strtotime($j->jam_mulai)),
+                'jam_selesai' => date('H:i', strtotime($j->jam_selesai)),
+                'section' => $hari . ' ' . date('H:i', strtotime($j->jam_mulai)) . 
+                            ' - ' . date('H:i', strtotime($j->jam_selesai))
+            ];
+        }
+        
+        echo json_encode($formatted_jadwal);
     }
 } 

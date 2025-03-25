@@ -1,6 +1,18 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * Controller untuk mengelola pasien
+ * 
+ * @property CI_DB_query_builder $db Database
+ * @property CI_Input $input Input
+ * @property CI_Form_validation $form_validation Form validation
+ * @property CI_Session $session Session
+ * @property CI_Upload $upload Upload
+ * @property Pasien_model $Pasien_model Model Pasien
+ * @property Rekam_medis_model $Rekam_medis_model Model Rekam Medis
+ * @property Kunjungan_model $Kunjungan_model Model Kunjungan
+ */
 class Pasien extends CI_Controller {
     
     public function __construct() {
@@ -64,6 +76,9 @@ class Pasien extends CI_Controller {
                     redirect('pasien/tambah');
                 }
             }
+            
+            // Generate nomor RM
+            $no_rm = $this->Pasien_model->generate_no_rm();
             
             // Data pasien
             $data_pasien = [
@@ -320,5 +335,168 @@ class Pasien extends CI_Controller {
             
             $this->load->view('pasien/cetak_all', $data);
         }
+    }
+    
+    /**
+     * API JSON untuk lookup pasien (untuk AJAX)
+     */
+    public function get_pasien_json() {
+        // Default values
+        $search = $this->input->post('search');
+        $page = $this->input->post('page') ? (int)$this->input->post('page') : 1;
+        $limit = 8; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit;
+        
+        // Load model untuk pencarian
+        $this->load->model('Pasien_model');
+        
+        // Jika ada keyword pencarian
+        if (!empty($search)) {
+            $data = $this->Pasien_model->search_pasien_paginated($search, $limit, $offset);
+            $total_data = $this->Pasien_model->count_search_results($search);
+        } else {
+            // Jika tidak ada keyword, tampilkan semua
+            $data = $this->Pasien_model->get_all_pasien($limit, $offset);
+            $total_data = $this->Pasien_model->count_all_pasien();
+        }
+        
+        // Format data untuk JSON
+        $result = [];
+        foreach ($data as $p) {
+            // Format jenis kelamin
+            $jenis_kelamin = ($p->jenis_kelamin == 'L') ? 'LAKI-LAKI' : 'PEREMPUAN';
+            
+            // Format tanggal lahir
+            $tgl_lahir = date('Y-m-d', strtotime($p->tanggal_lahir));
+            
+            $result[] = [
+                'id_pasien' => $p->id_pasien,
+                'no_rm' => $p->no_rm,
+                'nama_lengkap' => $p->nama_lengkap,
+                'tgl_lahir' => $tgl_lahir,
+                'jenis_kelamin' => $jenis_kelamin,
+                'tipe_pasien' => 'UMUM', // Ganti dengan field actual jika ada
+                'telepon' => $p->no_telp,
+                'alamat' => $p->alamat
+            ];
+        }
+        
+        // Hitung total halaman
+        $total_page = ceil($total_data / $limit);
+        
+        // Siapkan response
+        $response = [
+            'status' => true,
+            'data' => $result,
+            'total_data' => $total_data,
+            'total_page' => $total_page,
+            'current_page' => $page
+        ];
+        
+        // Return sebagai JSON
+        header('Content-Type: application/json');
+        echo json_encode($response);
+    }
+    
+    /**
+     * API JSON untuk detail pasien (untuk AJAX)
+     */
+    public function get_detail_json() {
+        $id_pasien = $this->input->post('id_pasien');
+        
+        if (!$id_pasien) {
+            $response = ['status' => false, 'message' => 'ID Pasien tidak valid'];
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            return;
+        }
+        
+        // Load model
+        $this->load->model('Pasien_model');
+        $this->load->model('Rekam_medis_model');
+        $this->load->model('Kunjungan_model');
+        
+        // Get data pasien
+        $pasien = $this->Pasien_model->get_pasien_by_id($id_pasien);
+        
+        if (!$pasien) {
+            $response = ['status' => false, 'message' => 'Data pasien tidak ditemukan'];
+            header('Content-Type: application/json');
+            echo json_encode($response);
+            return;
+        }
+        
+        // Format jenis kelamin
+        $jenis_kelamin = ($pasien->jenis_kelamin == 'L') ? 'LAKI-LAKI' : 'PEREMPUAN';
+        
+        // Format tanggal lahir
+        $tgl_lahir = date('d-m-Y', strtotime($pasien->tanggal_lahir));
+        
+        // Get riwayat kunjungan terakhir
+        $riwayat = $this->Kunjungan_model->get_riwayat_kunjungan_pasien($id_pasien, 1);
+        $terakhir_berobat = '';
+        
+        if (!empty($riwayat)) {
+            $terakhir_berobat = date('d-m-Y', strtotime($riwayat[0]->tanggal));
+        }
+        
+        // Siapkan data pasien
+        $data_pasien = [
+            'id_pasien' => $pasien->id_pasien,
+            'no_rm' => $pasien->no_rm,
+            'nama_lengkap' => $pasien->nama_lengkap,
+            'tgl_lahir' => $tgl_lahir,
+            'jenis_kelamin' => $jenis_kelamin,
+            'telepon' => $pasien->no_telp,
+            'alamat' => $pasien->alamat
+        ];
+        
+        // Siapkan response
+        $response = [
+            'status' => true,
+            'data' => $data_pasien,
+            'terakhir_berobat' => $terakhir_berobat
+        ];
+        
+        // Return sebagai JSON
+        header('Content-Type: application/json');
+        echo json_encode($response);
+    }
+    
+    /**
+     * Mendapatkan detail lengkap pasien untuk AJAX request
+     */
+    public function get_detail_lengkap_json() {
+        // Pastikan ini adalah request AJAX
+        if (!$this->input->is_ajax_request()) {
+            show_404();
+        }
+        
+        $id_pasien = $this->input->post('id_pasien');
+        
+        if (empty($id_pasien)) {
+            echo json_encode(['status' => false, 'message' => 'ID pasien tidak valid']);
+            return;
+        }
+        
+        // Ambil data pasien
+        $pasien = $this->Pasien_model->get_pasien_by_id($id_pasien);
+        
+        if (!$pasien) {
+            echo json_encode(['status' => false, 'message' => 'Data pasien tidak ditemukan']);
+            return;
+        }
+        
+        // Ambil data terakhir berobat
+        $this->load->model('Kunjungan_model');
+        $terakhir_berobat = $this->Kunjungan_model->get_last_visit_by_pasien($id_pasien);
+        
+        $response = [
+            'status' => true,
+            'data' => $pasien,
+            'terakhir_berobat' => $terakhir_berobat ? date('d-m-Y', strtotime($terakhir_berobat->tanggal)) : '-'
+        ];
+        
+        echo json_encode($response);
     }
 } 

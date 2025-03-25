@@ -192,4 +192,19 @@ class Dokter_model extends CI_Model {
         $this->db->where('dokter.status_praktek', 'aktif');
         return $this->db->get()->result();
     }
+
+    /**
+     * Mendapatkan semua data dokter dengan format sederhana
+     * 
+     * @return array
+     */
+    public function get_all_dokter_simple() {
+        $this->db->select('dokter.id_dokter, pengguna.nama_lengkap, dokter.spesialis');
+        $this->db->from('dokter');
+        $this->db->join('pengguna', 'pengguna.id_pengguna = dokter.id_pengguna');
+        $this->db->where('dokter.status_praktek', 'aktif');
+        $this->db->order_by('pengguna.nama_lengkap', 'ASC');
+        
+        return $this->db->get()->result();
+    }
 } 
